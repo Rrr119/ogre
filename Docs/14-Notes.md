@@ -191,7 +191,7 @@ Since 14.6, `shared_params` can be referenced by sub-renderstates.
 
 Since 14.6, the `metal_roughness` sub-renderstate supports an additional `occlusion` parameter to sample ambient occlusion from the R channel of the texture.
 
-Since 14.6, clustered light culling (also known as Forward+) is available through the `SRS_CLUSTERED_LIGHT_CULLING` sub-renderstate.
+Since 14.6, clustered light culling (also known as Forward+) is available through the `SRS_CLUSTERED_LIGHT_CULLING` sub-renderstate. It can be enabled in material scripts via `light_clustering froxel` inside the `rtshader_system` pass section and works with both point and spot lights. See the `ShaderSystemMultiLight` sample for a live comparison against plain forward rendering.
 
 Since 14.6, the distance attenuation is smoothed towards the light range to avoid a visible cut-off.
 

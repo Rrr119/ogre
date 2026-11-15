@@ -24,7 +24,8 @@ public:
         mPathNameGen("RTPath")
     {
         mInfo["Title"] = "ShaderSystem - Multi Light";
-        mInfo["Description"] = "Shows a possible way to support a large varying amount of spot lights";
+        mInfo["Description"] = "Shows a possible way to support a large varying amount of spot lights. "
+                               "Toggle clustered light culling to compare the frame rate against plain forward rendering.";
         mInfo["Thumbnail"] = "thumb_shadersystemmultilight.png";
         mInfo["Category"] = "Lighting";
 

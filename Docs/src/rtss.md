@@ -43,6 +43,7 @@ Here are the attributes you can use in a `rtshader_system` block of a `pass {}`:
 - [metal_roughness](#metal_roughness)
 - [fog_stage](#fog_stage)
 - [light_count](#light_count)
+- [light_clustering](#light_clustering)
 - [triplanarTexturing](#triplanarTexturing)
 - [shadow_mapping](#shadow_mapping)
 - [integrated_pssm4](#integrated_pssm4)
@@ -183,6 +184,41 @@ Example: `fog_stage ffp per_pixel`
 Override dynamic light count. Fix the number of lights to be used in the shader. Avoids shader recompilation when the number of lights changes.
 @par
 Format: `light_count <count>`
+
+<a name="light_clustering"></a>
+
+## light_clustering
+
+@copybrief Ogre::RTShader::SRS_CLUSTERED_LIGHT_CULLING
+
+Instead of evaluating every light for every fragment, the view frustum is subdivided into a 3D grid of clusters ("froxels").
+Each frame, the CPU bins all point and spot lights into the froxels they overlap and uploads the resulting per-cluster light lists as uniform buffers.
+The fragment shader then only evaluates the lights assigned to its own cluster, so the shading cost stays nearly constant as the light count grows.
+This technique is also known as Forward+ rendering.
+
+@par
+Format: `light_clustering froxel [debug]`
+@par
+Example:
+@code
+rtshader_system
+{
+    lighting_stage per_pixel
+    light_count 32
+    light_clustering froxel
+}
+@endcode
+
+@param debug tint fragments by the light count of their cluster to visualise the clustering occupancy
+
+@note Requires a per-pixel lighting stage (`per_pixel` or `metal_roughness`) and a RenderSystem with uniform buffer support (Ogre::RSC_UNIFORM_BUFFERS).
+Directional lights affect the whole frustum and are therefore evaluated unconditionally, outside the cluster grid.
+At most 255 lights can be culled this way.
+
+@note Clustered light culling is not compatible with per-renderable light sorting (Ogre::SceneManager::usePerRenderableLights).
+
+@see Ogre::RTShader::SRS_CLUSTERED_LIGHT_CULLING
+@see [light_count](#light_count) to avoid shader recompilation when the light count changes
 
 <a name="triplanarTexturing"></a>
 

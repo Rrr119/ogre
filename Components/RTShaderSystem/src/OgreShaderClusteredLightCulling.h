@@ -21,7 +21,7 @@ namespace RTShader {
 
 Culls the global light list against the froxel grid and publishes the resulting
 per-fragment light list as the local parameter @c lights of type @c FroxelLights.
-Lighting sub render states
+Lighting sub render states automatically pick it up and only iterate the visible lights.
 */
 class ClusteredLightCulling : public SubRenderState
 {
