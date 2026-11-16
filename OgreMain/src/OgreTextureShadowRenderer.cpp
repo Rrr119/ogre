@@ -503,6 +503,35 @@ void SceneManager::TextureShadowRenderer::prepareTexCam(Camera* texCam, Camera* 
 }
 void SceneManager::TextureShadowRenderer::updateShadowTextures(Camera* cam, Viewport* vp, const LightList* lightList)
 {
+    // Let the shadow camera setup tune per-cascade texture sizes before the
+    // render targets are allocated below. This keeps adaptive resolution
+    // transparent to callers and to material scripts.
+    size_t configIndex = 0;
+    for (Light* light : *lightList)
+    {
+        if (!light->getCastShadows())
+            continue;
+
+        size_t textureCount = mShadowTextureCountPerType[light->getType()];
+        if (configIndex >= mShadowTextureConfigList.size())
+            break;
+
+        const ShadowCameraSetupPtr& setup = light->getCustomShadowCameraSetup()
+                                                ? light->getCustomShadowCameraSetup()
+                                                : mDefaultShadowCameraSetup;
+        if (setup)
+        {
+            size_t available = mShadowTextureConfigList.size() - configIndex;
+            setup->prepareShadowTextureConfigs(mSceneManager, cam, vp, light, configIndex,
+                                               std::min(textureCount, available));
+        }
+
+        configIndex += textureCount;
+    }
+
+    if (mShadowTextureConfigDirty)
+        ensureShadowTexturesCreated();
+
     // Determine far shadow distance
     Real shadowDist = mDefaultShadowFarDist;
     if (!shadowDist)

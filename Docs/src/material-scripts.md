@@ -1107,6 +1107,13 @@ Format: content\_type &lt;type&gt; \[&lt;compositorName&gt;\] \[&lt;textureName&
 
 This option allows you to pull in a shadow texture, and is only valid when you use texture shadows and one of the ’custom sequence’ shadowing types (See @ref Shadows). The shadow texture in question will be from the ’n’th closest light that casts shadows, unless you use light-based pass iteration or the light\_start option which may start the light index higher. When you use this option in multiple texture units within the same pass, each one references the next shadow texture. The shadow texture index is reset in the next pass, in case you want to take into account the same shadow textures again in another pass (e.g. a separate specular / gloss pass). By using this option, the correct light frustum projection is set up for you for use in fixed-function, if you use shaders just reference the texture\_viewproj\_matrix auto parameter in your shader.
 
+For cascaded shadow maps, declare one shadow texture unit per cascade. The
+units are bound in cascade order, and the corresponding projection matrices
+are available as `texture_viewproj_matrix 0`, `texture_viewproj_matrix 1`, and
+so on. Existing scripts therefore remain valid when switching from a single
+shadow map to `Ogre::CSMShadowCameraSetup`; only the number of shadow texture
+units and the shader's cascade selection need to match the cascade count.
+
 </dd> <dt>compositor</dt> <dd>
 
 @copybrief Ogre::TextureUnitState::CONTENT_COMPOSITOR This can be either in a @c render_scene directive inside a compositor script, or in a general pass in a viewport that has a compositor attached. Note that this is a reference only, meaning that it does not change the render order. You must make sure that the order is reasonable for what you are trying to achieve (for example, texture pooling might cause the referenced texture to be overwritten by something else by the time it is referenced).

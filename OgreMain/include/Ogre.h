@@ -106,6 +106,7 @@ THE SOFTWARE.
 #include "OgreSceneManager.h"
 #include "OgreSceneNode.h"
 #include "OgreShadowCameraSetup.h"
+#include "OgreShadowCameraSetupCSM.h"
 #include "OgreShadowCameraSetupFocused.h"
 #include "OgreShadowCameraSetupLiSPSM.h"
 #include "OgreShadowCameraSetupPlaneOptimal.h"

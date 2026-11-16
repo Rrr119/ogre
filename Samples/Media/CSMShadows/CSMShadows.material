@@ -65,7 +65,10 @@ fragment_program ShadowReceiverFP cg hlsl
     {
         param_named_auto lightDirection light_direction 0
         param_named_auto ambientColor ambient_light_colour
-        param_named_auto shadowMapSize packed_texture_size 1
+        param_named_auto shadowMapSize0 packed_texture_size 1
+        param_named_auto shadowMapSize1 packed_texture_size 2
+        param_named_auto shadowMapSize2 packed_texture_size 3
+        param_named_auto shadowMapSize3 packed_texture_size 4
 
         shared_params_ref params_shadowMatrixScaleBias
 

@@ -7,7 +7,6 @@
 #include "SdkSample.h"
 
 #include "CSMGpuConstants.h"
-#include "ShadowCameraSetupStableCSM.h"
 
 using namespace Ogre;
 using namespace OgreBites;
@@ -18,7 +17,9 @@ public:
     CSMShadows()
     {
         mInfo["Title"] = "CSM Shadows";
-        mInfo["Description"] = "A demonstration of a custom shadow camera implementation";
+        mInfo["Description"] =
+            "Cascaded shadow maps with stable texel snapping and adaptive resolution. "
+            "Use the check boxes to compare against a single shadow map.";
         mInfo["Thumbnail"] = "thumb_csm.png";
         mInfo["Category"] = "Lighting";
     }
@@ -45,11 +46,48 @@ public:
         setupGeometry();
         setupLights();
         setupShadows();
+        setupControls();
 
         mTrayMgr->showCursor();
     }
 
+    void checkBoxToggled(CheckBox* box) override
+    {
+        if (box->getName() == "AdaptiveResolution")
+            mCsm->setAdaptiveShadowMapResolution(box->isChecked());
+        else if (box->getName() == "StabilizeCascades")
+            mCsm->setStabilizeCascades(box->isChecked());
+        else if (box->getName() == "SingleCascade")
+            applySplitScheme(box->isChecked());
+    }
+
 private:
+    void setupControls()
+    {
+        mTrayMgr->createCheckBox(TL_TOPLEFT, "AdaptiveResolution", "Adaptive resolution", 200)
+            ->setChecked(true, false);
+        mTrayMgr->createCheckBox(TL_TOPLEFT, "StabilizeCascades", "Stable cascades", 200)
+            ->setChecked(true, false);
+        mTrayMgr->createCheckBox(TL_TOPLEFT, "SingleCascade", "Single map (compare)", 200)
+            ->setChecked(false, false);
+    }
+
+    void applySplitScheme(bool singleCascade)
+    {
+        const Real farClip = 5000.0f;
+        if (singleCascade)
+        {
+            // Keep four texture units for the receiver material, but make the
+            // first cascade cover the whole view. That makes the comparison an
+            // apples-to-apples single-map vs. cascaded-map test.
+            mCsm->setSplitPoints({0.0f, farClip, farClip, farClip, farClip});
+        }
+        else
+        {
+            mCsm->calculateSplitPointsFromFirstSplit(NUM_CASCADES, 50.0f, farClip, 0.93f);
+        }
+    }
+
     void setupGeometry()
     {
         float scale = 0.5f;
@@ -136,23 +174,14 @@ private:
         for (int i = 0; i < NUM_CASCADES; i++)
             mSceneMgr->setShadowTextureConfig(i, 1024, 1024, PF_FLOAT32_R);
 
-        float farClip = 5000.0f;
-
-        // Create the CSM shadow setup
-        auto shadowSetup = std::make_shared<StableCSMShadowCameraSetup>();
-
-        float lambda = 0.93f; // lower lamdba means more uniform, higher lambda means more logarithmic
-        float firstSplitDist = 50.0f;
-
-        shadowSetup->calculateSplitPoints(NUM_CASCADES, firstSplitDist, farClip, lambda);
-        StableCSMShadowCameraSetup::SplitPointList points = shadowSetup->getSplitPoints();
-
-        // Apply settings
-        shadowSetup->setSplitPoints(points);
-        float splitPadding = 1.0f;
-        shadowSetup->setSplitPadding(splitPadding);
-        mSceneMgr->setShadowCameraSetup(shadowSetup);
+        mCsm = std::make_shared<CSMShadowCameraSetup>();
+        mCsm->calculateSplitPointsFromFirstSplit(NUM_CASCADES, 50.0f, 5000.0f, 0.93f);
+        mCsm->setSplitPadding(1.0f);
+        mCsm->setShadowMapResolutionRange(512, 2048);
+        mCsm->setAdaptiveShadowMapResolution(true);
+        mSceneMgr->setShadowCameraSetup(mCsm);
     }
 
     std::unique_ptr<CSMGpuConstants> mGpuConstants;
+    std::shared_ptr<CSMShadowCameraSetup> mCsm;
 };

@@ -1006,6 +1006,8 @@ PTR_TRAITS(Ogre::Texture)
     SHARED_PTR(ShadowCameraSetup);
     SHARED_PTR(DefaultShadowCameraSetup);
     %include "OgreShadowCameraSetup.h"
+        SHARED_PTR(CSMShadowCameraSetup);
+        %include "OgreShadowCameraSetupCSM.h"
         SHARED_PTR(FocusedShadowCameraSetup);
         %include "OgreShadowCameraSetupFocused.h"
         SHARED_PTR(LiSPSMShadowCameraSetup);

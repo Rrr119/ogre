@@ -100,7 +100,8 @@ void main_fp
     iShadowLightspacePos3.xy *= texMatrixScaleBias3.w;
 
     half shadow = getCsmShadowFactor(shadowTexture0, shadowTexture1, shadowTexture2, shadowTexture3,
-                                   iShadowLightspacePos0, iShadowLightspacePos1, iShadowLightspacePos2, iShadowLightspacePos3, lDotN);
+                                   iShadowLightspacePos0, iShadowLightspacePos1, iShadowLightspacePos2, iShadowLightspacePos3, lDotN,
+                                   shadowMapSize0, shadowMapSize1, shadowMapSize2, shadowMapSize3);
 
     // Fade out shadows near max distance
     half weight = saturate(((iTexCoord0.z + shadowFadeDist) - shadowMaxDist) / shadowFadeDist);

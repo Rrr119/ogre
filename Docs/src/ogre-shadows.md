@@ -447,6 +447,7 @@ There are several ways to distribute the texels in the shadow texture differentl
 Ogre is provided with several alternative shadow camera setups:
  - Ogre::FocusedShadowCameraSetup: Implements the uniform shadow mapping algorithm in focused mode.
  - Ogre::LiSPSMShadowCameraSetup: Implements the Light Space Perspective Shadow Mapping Algorithm.
+ - Ogre::CSMShadowCameraSetup: Stable cascaded shadow maps for directional lights in large outdoor scenes.
  - Ogre::PSSMShadowCameraSetup: Parallel Split Shadow Map (PSSM) shadow camera setup.
  - Ogre::PlaneOptimalShadowCameraSetup: Implements the plane optimal shadow camera algorithm.
 
@@ -467,6 +468,111 @@ Another example, using LiSPSM Camera Setup:
 ```cpp
 mSceneMgr->setShadowCameraSetup(Ogre::LiSPSMShadowCameraSetup::create());
 ```
+
+### Cascaded Shadow Maps {#CSM}
+
+Cascaded shadow maps (CSM) are the recommended setup for large outdoor
+scenes with a directional light. A single shadow map has to cover the whole
+view distance, so the texel density near the camera becomes very low. CSM
+instead splits the view frustum into a few ranges and renders a separate map
+for each range. The near cascade gets most of the detail while the far
+cascades cover the distant landscape.
+
+The main source of visible "crawling" or flickering in a moving camera is not
+the number of maps, but the shadow projection itself. As the camera moves, the
+light-space projection moves with it and the scene is rasterized into a
+different set of shadow texels every frame. `CSMShadowCameraSetup` avoids this
+by fitting an oriented bounding sphere around each split (the sphere does not
+change scale when the camera rotates) and snapping the light-space translation
+to the shadow map texel grid. This is enabled by default; use
+`setStabilizeCascades(false)` only if you need a custom matrix.
+
+The split points can be generated with a practical linear/logarithmic blend:
+
+```cpp
+auto csm = std::make_shared<Ogre::CSMShadowCameraSetup>();
+csm->calculateSplitPoints(4, 1.0f, 4000.0f, 0.95f);
+
+// Four shadow textures per directional light.
+sceneMgr->setShadowTextureCountPerLightType(Ogre::Light::LT_DIRECTIONAL, 4);
+sceneMgr->setShadowTextureCount(4);
+sceneMgr->setShadowCameraSetup(csm);
+```
+
+For outdoor scenes it is often better to keep the first cascade at a fixed
+size and distribute the remaining cascades towards the far distance:
+
+```cpp
+csm->calculateSplitPointsFromFirstSplit(4, 50.0f, 4000.0f, 0.93f);
+```
+
+The resulting boundaries are available through `getSplitPoints()` and the
+cascade for a fragment or world position can be queried directly:
+
+```cpp
+size_t cascade = csm->getCascadeIndex(viewDistance);
+size_t objectCascade = csm->getCascadeIndex(camera, worldPosition);
+```
+
+The split boundaries also include a small overlap controlled by
+`setSplitPadding()`. The padding keeps receiver geometry from falling into a
+gap between two adjacent cascade frusta.
+
+#### Adaptive shadow map resolution
+
+Allocating the same 2048x2048 map for every cascade wastes memory and
+bandwidth. When adaptive resolution is enabled (the default), the renderer
+derives each cascade size from the viewport height, then reduces successive
+cascades by a configurable falloff:
+
+```cpp
+csm->setAdaptiveShadowMapResolution(true);
+csm->setShadowMapResolutionRange(512, 2048);
+csm->setShadowMapResolutionScale(1.0f);       // base = viewport height
+csm->setCascadeResolutionFalloff(0.5f);       // 2048, 1024, 512, 512
+```
+
+The texture format, depth and other per-texture settings are preserved; only
+the width and height are updated. The update happens before the shadow
+textures are allocated and is idempotent, so it does not cause per-frame
+texture reallocation. `getRecommendedShadowMapSize(cascade, viewportHeight)`
+exposes the same policy for tools and UI.
+
+#### Material-script compatibility
+
+CSM does not introduce a new receiver material. Existing paths continue to
+work:
+
+- RTSS receivers using `rtshader_system { shadow_mapping }` automatically
+  detect the cascade count and split points from the active
+  `ShadowCameraSetup`. You no longer need to copy `split_points` into the
+  material or render state. The generated shader selects the correct cascade
+  and uses each `content_type shadow` texture unit in order.
+- Custom receiver shaders can declare one `content_type shadow` unit per
+  cascade and use `texture_viewproj_matrix 0`, `texture_viewproj_matrix 1`,
+  etc. Each matrix projects world space into the corresponding cascade.
+- `shadow_caster_material`, `shadow_receiver_material`, `receive_shadows`,
+  `transparency_casts_shadows` and the `shadow_caster_*` scheme continue to
+  apply unchanged.
+
+If you use more than one shadow-casting directional light, reserve
+`cascadeCount` textures for each light and keep
+`setShadowTextureCountPerLightType()` in sync.
+
+The `CSM Shadows` sample demonstrates stable cascades, adaptive resolution and
+a single-map comparison toggle. See `Samples/CSMShadows`.
+
+#### CSM and PSSM
+
+Both techniques use multiple shadow maps per directional light. The practical
+differences are:
+
+| | CSM | PSSM |
+|---|---|---|
+| Frustum fit | Oriented bounding sphere per split | LiSPSM projection per split |
+| Camera movement | Texel snapping on by default | No built-in snapping |
+| Resolution | Adaptive per cascade, on by default | Manually configured |
+| Best for | Large outdoor scenes with a moving camera | Scenes that benefit from LiSPSM warping |
 
 For big scenes with directional lights one of the better performing Shadow Camera Setups is PSSM.
 A PSSM shadow system uses multiple shadow maps per light and maps each texture into a region of space, 

@@ -5,7 +5,6 @@
 
 uniform float4 fixedDepthBias;
 uniform float4 gradientScaleBias;
-uniform float4 shadowMapSize;
 
 
 
@@ -25,14 +24,18 @@ half getCsmShadowFactor
     float4 lightSpacePos1,
     float4 lightSpacePos2,
     float4 lightSpacePos3,
-    half shadowLightDotLN
+    half shadowLightDotLN,
+    uniform float4 shadowMapSize0,
+    uniform float4 shadowMapSize1,
+    uniform float4 shadowMapSize2,
+    uniform float4 shadowMapSize3
 )
 {
     half factor = 1;
 
     if (lightSpacePos0.x > 0.01 && lightSpacePos0.y > 0.01 && lightSpacePos0.x < 0.99 && lightSpacePos0.y < 0.99)
     {
-        factor = getShadowFactor(shadowTexture0, lightSpacePos0, shadowMapSize.x, shadowMapSize.z,
+        factor = getShadowFactor(shadowTexture0, lightSpacePos0, shadowMapSize0.x, shadowMapSize0.z,
                                          fixedDepthBias.x, gradientScaleBias.x, shadowLightDotLN);
 
     #ifdef DEBUG_CSM
@@ -40,7 +43,7 @@ half getCsmShadowFactor
     #endif
 
     #ifdef BLENDING
-        half blend = getShadowFactor(shadowTexture1, lightSpacePos1, shadowMapSize.x, shadowMapSize.z,
+        half blend = getShadowFactor(shadowTexture1, lightSpacePos1, shadowMapSize1.x, shadowMapSize1.z,
                                          fixedDepthBias.y, gradientScaleBias.y, shadowLightDotLN);
 
         half weight = saturate((max( abs(lightSpacePos0.x-0.5), abs(lightSpacePos0.y-0.5)) -0.375) * 8);
@@ -55,7 +58,7 @@ half getCsmShadowFactor
     }
     else if (lightSpacePos1.x > 0.01 && lightSpacePos1.y > 0.01 && lightSpacePos1.x < 0.99 && lightSpacePos1.y < 0.99)
     {
-        factor = getShadowFactor(shadowTexture1, lightSpacePos1, shadowMapSize.x, shadowMapSize.z,
+        factor = getShadowFactor(shadowTexture1, lightSpacePos1, shadowMapSize1.x, shadowMapSize1.z,
                                             fixedDepthBias.y, gradientScaleBias.y, shadowLightDotLN);
 
     #ifdef DEBUG_CSM
@@ -63,7 +66,7 @@ half getCsmShadowFactor
     #endif
 
     #ifdef BLENDING
-        half blend = getShadowFactor(shadowTexture2, lightSpacePos2, shadowMapSize.x, shadowMapSize.z,
+        half blend = getShadowFactor(shadowTexture2, lightSpacePos2, shadowMapSize2.x, shadowMapSize2.z,
                                                 fixedDepthBias.z, gradientScaleBias.z, shadowLightDotLN);
         half weight = saturate((max( abs(lightSpacePos1.x-0.5), abs(lightSpacePos1.y-0.5) ) -0.4375) * 16);
         factor = lerp (factor, blend, weight);
@@ -76,7 +79,7 @@ half getCsmShadowFactor
     }
     else if (lightSpacePos2.x > 0.01 && lightSpacePos2.y > 0.01 && lightSpacePos2.x < 0.99 && lightSpacePos2.y < 0.99)
     {
-        factor = getShadowFactor(shadowTexture2, lightSpacePos2, shadowMapSize.x, shadowMapSize.z,
+        factor = getShadowFactor(shadowTexture2, lightSpacePos2, shadowMapSize2.x, shadowMapSize2.z,
                                             fixedDepthBias.z, gradientScaleBias.z, shadowLightDotLN);
 
     #ifdef DEBUG_CSM
@@ -84,7 +87,7 @@ half getCsmShadowFactor
     #endif
 
     #ifdef BLENDING
-        half blend = getShadowFactor(shadowTexture3, lightSpacePos3, shadowMapSize.x, shadowMapSize.z,
+        half blend = getShadowFactor(shadowTexture3, lightSpacePos3, shadowMapSize3.x, shadowMapSize3.z,
                                                     fixedDepthBias.w, gradientScaleBias.w, shadowLightDotLN);
 
         half weight = saturate((max( abs(lightSpacePos2.x-0.5), abs(lightSpacePos2.y-0.5)) -0.375) * 8);
@@ -97,7 +100,7 @@ half getCsmShadowFactor
     }
     else
     {
-        factor = getShadowFactor(shadowTexture3, lightSpacePos3, shadowMapSize.x, shadowMapSize.z,
+        factor = getShadowFactor(shadowTexture3, lightSpacePos3, shadowMapSize3.x, shadowMapSize3.z,
                                             fixedDepthBias.w, gradientScaleBias.w, shadowLightDotLN);
 
         // Fade out to edges

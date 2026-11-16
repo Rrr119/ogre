@@ -69,6 +69,19 @@ namespace Ogre {
         /// Function to implement -- must set the shadow camera properties
         virtual void getShadowCamera (const SceneManager *sm, const Camera *cam, 
                                       const Viewport *vp, const Light *light, Camera *texCam, size_t iteration) const = 0;
+
+        /** Optional hook to adapt shadow texture settings before they are created.
+
+            The renderer calls this for every shadow-casting light before the
+            shadow textures are (re)allocated. Setups that do not need to change
+            the texture configuration can keep the default implementation.
+        @param firstShadowTexture Index of the first shadow texture used by this light.
+        @param shadowTextureCount Number of shadow textures allocated to this light.
+        */
+        virtual void prepareShadowTextureConfigs(SceneManager* sm, const Camera* cam, const Viewport* vp,
+                                                 const Light* light, size_t firstShadowTexture,
+                                                 size_t shadowTextureCount) const {}
+
         /// Need virtual destructor in case subclasses use it
         virtual ~ShadowCameraSetup() {}
 

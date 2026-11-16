@@ -120,6 +120,16 @@ Additionally, you can check `RSC_VP_RT_INDEX_ANY_SHADER` to see if the rendering
 The `hdrDisplay` option was added to the RenderSystem options (and as a window parameter). When enabled, the backbuffer is switched to FP16 and the scRGB colour space is requested.
 This requires an HDR capable monitor with HDR enabled in the OS settings and is available on Windows with the GL, GLES2, D3D11 and Vulkan render systems.
 
+### Cascaded Shadow Maps (since 14.7)
+
+`Ogre::CSMShadowCameraSetup` adds stable cascaded shadow maps for directional
+lights. It fits an oriented bounding sphere around each split, snaps the
+light-space translation to the shadow map texel grid to remove camera-movement
+flicker, and selects per-cascade shadow map resolutions from the viewport size.
+RTSS `shadow_mapping` receivers pick up the cascade count and split points
+automatically, so existing material scripts do not need a custom receiver
+material. See @ref CSM and the `CSM Shadows` sample.
+
 ### Hardened asset loading (since 14.6)
 
 The mesh, skeleton, script, DDS/KTX and zip loading paths received extensive validation and bounds checking, driven by fuzz testing.

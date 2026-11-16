@@ -221,6 +221,11 @@ Format: `shadow_mapping [light_count <num>] [filter <type>]`
 @param filter one of `pcf4, pcf16` (default: @c pcf4)
 @param light_count number of lights to support (default: 1)
 
+When the active `ShadowCameraSetup` is an
+`Ogre::CSMShadowCameraSetup` or `Ogre::PSSMShadowCameraSetup`, the cascade
+count and split points are taken from the setup automatically. An explicit
+`split_points` parameter still overrides the automatic configuration.
+
 <a name="hardware_skinning"></a>
 
 ## hardware_skinning

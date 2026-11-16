@@ -97,6 +97,9 @@ protected:
 
     void setSplitPoints(const SplitPointList& newSplitPoints);
 
+    /// Configure cascades from the SceneManager's shadow camera setup.
+    void configureSplitPointsFromSceneManager();
+
     // Shadow texture parameters.
     struct ShadowTextureParams
     {                   
@@ -179,6 +182,7 @@ protected:
     bool mIsD3D9;
     bool mUseArrayTexture;
     uchar mMultiLightCount;
+    bool mSplitPointsExplicit;
 };
 
 

@@ -26,6 +26,9 @@ THE SOFTWARE.
 -----------------------------------------------------------------------------
 */
 #include "OgreShaderPrecompiledHeaders.h"
+#include "OgreSceneManager.h"
+#include "OgreShadowCameraSetupCSM.h"
+#include "OgreShadowCameraSetupPSSM.h"
 #ifdef RTSHADER_SYSTEM_BUILD_EXT_SHADERS
 
 #define SGX_LIB_INTEGRATEDPSSM                      "SGXLib_IntegratedPSSM"
@@ -49,6 +52,7 @@ IntegratedPSSM3::IntegratedPSSM3()
     mDebug = false;
     mIsD3D9 = false;
     mUseArrayTexture = false;
+    mSplitPointsExplicit = false;
     mShadowTextureParamsList.resize(1); // normal single texture depth shadowmapping
     mMultiLightCount = 1;
 }
@@ -99,6 +103,7 @@ void IntegratedPSSM3::copyFrom(const SubRenderState& rhs)
     mDebug = rhsPssm.mDebug;
     mMultiLightCount = rhsPssm.mMultiLightCount;
     mUseArrayTexture = rhsPssm.mUseArrayTexture;
+    mSplitPointsExplicit = rhsPssm.mSplitPointsExplicit;
     mShadowTextureParamsList.resize(rhsPssm.mShadowTextureParamsList.size());
 
     ShadowTextureParamsConstIterator itSrc = rhsPssm.mShadowTextureParamsList.begin();
@@ -119,6 +124,9 @@ bool IntegratedPSSM3::preAddToRenderState(const RenderState* renderState,
 
     mIsD3D9 = ShaderGenerator::getSingleton().getTargetLanguage() == "hlsl" &&
               !GpuProgramManager::getSingleton().isSyntaxSupported("vs_4_0_level_9_1");
+
+    if (!mSplitPointsExplicit)
+        configureSplitPointsFromSceneManager();
 
     PixelFormat shadowTexFormat = PF_UNKNOWN;
     const auto& configs = ShaderGenerator::getSingleton().getActiveSceneManager()->getShadowTextureConfigList();
@@ -154,6 +162,71 @@ void IntegratedPSSM3::setSplitPoints(const SplitPointList& newSplitPoints)
     {
         mShadowTextureParamsList[i - 1].mMaxRange = newSplitPoints[i];
     }
+
+    mSplitPointsExplicit = true;
+}
+
+void IntegratedPSSM3::configureSplitPointsFromSceneManager()
+{
+    if (mMultiLightCount > 1)
+        return;
+
+    SceneManager* sm = ShaderGenerator::getSingleton().getActiveSceneManager();
+    if (!sm)
+        return;
+
+    size_t cascadeCount = sm->getShadowTextureCountPerLightType(Light::LT_DIRECTIONAL);
+    if (cascadeCount < 2)
+    {
+        mShadowTextureParamsList.resize(1);
+        return;
+    }
+
+    const std::vector<Real>* splitPoints = NULL;
+    auto getSplitPoints = [](const ShadowCameraSetupPtr& setup) -> const std::vector<Real>* {
+        if (auto csm = std::dynamic_pointer_cast<CSMShadowCameraSetup>(setup))
+            return &csm->getSplitPoints();
+        if (auto pssm = std::dynamic_pointer_cast<PSSMShadowCameraSetup>(setup))
+            return &pssm->getSplitPoints();
+        return NULL;
+    };
+
+    ShadowCameraSetupPtr setup = sm->getShadowCameraSetup();
+    splitPoints = getSplitPoints(setup);
+
+    if (!splitPoints)
+    {
+        for (Light* light : sm->_getLightsAffectingFrustum())
+        {
+            if (light->getType() == Light::LT_DIRECTIONAL && light->getCustomShadowCameraSetup())
+            {
+                splitPoints = getSplitPoints(light->getCustomShadowCameraSetup());
+                if (splitPoints)
+                    break;
+            }
+        }
+    }
+
+    if (!splitPoints || splitPoints->size() < 2)
+    {
+        mShadowTextureParamsList.resize(1);
+        return;
+    }
+
+    cascadeCount = std::min(cascadeCount, splitPoints->size() - 1);
+    cascadeCount = std::min<size_t>(cascadeCount, 4); // the shader uses a float4 for split points
+
+    SplitPointList converted(cascadeCount + 1);
+    for (size_t i = 0; i <= cascadeCount; ++i)
+        converted[i] = static_cast<float>((*splitPoints)[i]);
+
+    mShadowTextureParamsList.resize(cascadeCount);
+    for (size_t i = 1; i < converted.size(); ++i)
+        mShadowTextureParamsList[i - 1].mMaxRange = converted[i];
+
+    // This was inferred automatically; keep allowing an explicit
+    // split_points parameter to override it.
+    mSplitPointsExplicit = false;
 }
 
 bool IntegratedPSSM3::setParameter(const String& name, const String& value)

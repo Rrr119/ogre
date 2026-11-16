@@ -1,0 +1,17 @@
+{
+  "root": "/home/dev/feedback/uid22496",
+  "B": "/home/dev/feedback/uid22496",
+  "sha": "efe9dd5126cc20901ba046eabcfee34bf01063dd",
+  "wslDistro": "Ubuntu-26.04",
+  "source": {
+    "owner": "OGRECave",
+    "repo": "ogre",
+    "sha": "efe9dd5126cc20901ba046eabcfee34bf01063dd"
+  },
+  "fork": {
+    "owner": "Rrr119",
+    "repo": "ogre",
+    "cloneUrl": "https://github.com/Rrr119/ogre.git"
+  },
+  "at": "2026-11-16T18:26:23.919Z"
+}
